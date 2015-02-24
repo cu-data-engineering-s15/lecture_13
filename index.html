@@ -46,6 +46,537 @@
           <p>February 24, 2015</p>
         </section>
 
+        <section>
+          <h2>Credit Where Credit is Due</h2>
+          <ul>
+            <li><a href="http://guide.couchdb.org/draft/index.html">CouchDB: The Definitive Guide</a></li>
+            <li>Book is freely-available on the web
+              <ul>
+                <li>Also available for purchase via O'Reilly</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Document Database</h2>
+          <ul>
+            <li>CouchDB is a Document NoSQL Database</li>
+            <li>It is implemented in Erlang, a language that has seen a lot of use in telecommunications
+              <ul>
+                <li>Erlang has built in support for massive concurrency, fault tolerance, and support for distributed systems</li>
+                <li>All of these features are on display in the design of CouchDB</li>
+              </ul>
+            </li>
+            <li>CouchDB's design <strong>embraces the web</strong>
+              <ul>
+                <li>RESTful API</li>
+                <li>Built for Distribution</li>
+                <li>High availability by trading consistency for eventual consistency</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Document Model</h2>
+          <ul>
+            <li>Document databases: self-contained data</li>
+            <li>CouchDB stores documents</li>
+            <li>Each document contains everything that might be needed by an application that makes use of it
+              <ul>
+                <li>Rather than containing a few data elements and then pointers (i.e. foreign keys) to other related data elements</li>
+              </ul>
+            </li>
+            <li>No schema is enforced: each document can have a different set of attributes
+              <ul>
+                <li>Allows for natural modeling of domains</li>
+                <li>Attributes can contain embedded documents</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>CAP Theorem</h2>
+          <ul>
+            <li>When designing a distributed data store, there are issues you must confront as soon as your system has more than one server running</li>
+            <li>The issues are:
+              <ul>
+                <li><span class="fragment highlight-blue">Consistency</span>: All clients see the same data even in the presence of concurrent updates</li>
+                <li><span class="fragment highlight-blue">Availability</span>: All clients are able to read or write the data store when they want</li>
+                <li><span class="fragment highlight-blue">Partition Tolerance</span>: A database can be split across multiple servers</li>
+              </ul>
+            </li>
+            <li>The CAP Theorem states: <strong><span class="fragment highlight-blue">PICK ANY TWO</span></strong></li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Choices, Choices</h2>
+          <ul>
+            <li>Picking two of the characteristics for your system provides very different capabilities
+              <ul>
+                <li><span class="fragment highlight-blue">Consistency and Availability</span>: What relational databases provide; they have low partition tolerance as we dicussed in <a href="http://cu-data-engineering-s15.github.io/lecture_12/">Lecture 12</a></li>
+                <li><span class="fragment highlight-blue">Availability and Partition Tolerance</span>: Provides the ability to scale horizontally and always be available for requests but can only guarantee eventual consistency</li>
+                <li><span class="fragment highlight-blue">Consistency and Partition Tolerance</span>: Able to provide consistency across multiple databases at the price of not always being available for client requests</li>
+              </ul>
+            </li>
+            <li>CouchDB (and many NoSQL systems) choose number two!</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Where the Magic Happens (1)</h2>
+          <ul>
+            <li>Internally, CouchDB makes use of a B-tree storage engine
+              <ul>
+                <li>Automatic sorting; Allows searches, insertions, and deletions to occur in logarithmic time</li>
+              </ul>
+            </li>
+            <li>Employs MapReduce over this B-tree to compute <q>views</q> of the data (more on this later) allowing for parallel and incremental computation</li>
+            <li>No Locking
+              <ul>
+                <li>In the same way that Git does not require locks to allow multiple people to edit a repo, CouchDB does not require locks for concurrent access to its documents</li>
+                <li>Each read of a document, returns a version of the document that was the latest when the read started</li>
+                <li>A new version of the document can be written while a read occurs; the next read will return the new document</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Where the Magic Happens (2)</h2>
+          <ul>
+            <li>Validation: Validation functions can be written in Javascript for a particular class of document
+              <ul>
+                <li>Each time an update for a document is submitted, the proposed change is passed to the validation function</li>
+                <li>The validation function can then choose to approve or deny the update</li>
+                <li>This can reduce the amount of work on the client and can ensure that a bad client cannot maliciously insert bad data into the system</li>
+              </ul>
+            </li>
+            <li>Incremental Replication
+              <ul>
+                <li>You can choose to synchronize data between two servers whenever you like</li>
+                <li>Once replication is done, each copy is independent (like git)</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Where the Magic Happens (3)</h2>
+          <ul>
+            <li>Merge Conflicts?
+              <ul>
+                <li>Like git, you can encounter a merge conflict</li>
+                <li>Each document in CouchDB has an id (_id) and a revision id (_rev).</li>
+                <li>When you update a document in two different servers and then synchronize, CouchDB can automatically detect and resolve conflicts</li>
+                <li>If CouchDB cannot automatically resolve the conflict, then it allows the application to decide what to do (again, just like git)</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Installing CouchDB</h2>
+          <ul>
+            <li>You can download CouchDB from <a href="https://couchdb.apache.org">the official website</a></li>
+            <li>I recommend using a package manager
+              <ul>
+                <li>On MacOS X with Homebrew:
+                  <ul>
+                    <li><code>brew install couchdb</code></li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Trying It Out</h2>
+          <ul>
+            <li>In one window: <code>couchdb</code></li>
+            <li>In another window:</li>
+          </ul>
+          <pre><code data-trim contenteditable>
+$ curl http://127.0.0.1:5984/
+{
+  "couchdb":"Welcome",
+  "uuid":"c4d4f27dc0623da471f82050a8b35f55",
+  "version":"1.6.1",
+  "vendor": {
+    "version":"1.6.1-1",
+    "name":"Homebrew"}
+}
+</code></pre>
+        </section>
+
+        <section>
+          <h2>Ask for a List of Databases</h2>
+          <pre><code data-trim contenteditable>
+$ curl -X GET http://127.0.0.1:5984/_all_dbs
+["_replicator","_users"]
+          </code></pre>
+          <ul>
+            <li>These are internal databases used by CouchDB</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Create a New Database</h2>
+          <pre><code data-trim contenteditable>
+$ curl -X PUT http://127.0.0.1:5984/tweets
+{"ok": true}
+$ curl -X GET http://127.0.0.1:5984/_all_dbs
+["_replicator","_users","tweets"]
+          </code></pre>
+          <ul>
+            <li>Tweets was created and now appears in the list</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Delete a Database</h2>
+          <pre><code data-trim contenteditable>
+$ curl -X PUT http://127.0.0.1:5984/delete_me
+{"ok": true}
+$ curl -X GET http://127.0.0.1:5984/_all_dbs
+["_replicator","_users","delete_me","tweets"]
+$ curl -X DELETE http://127.0.0.1:5984/delete_me
+{"ok": true}
+$ curl -X GET http://127.0.0.1:5984/_all_dbs
+["_replicator","_users","tweets"]
+          </code></pre>
+          <ul>
+            <li>CRUD operations are supported</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Web-Based Interface</h2>
+          <ul>
+            <li>Visit &lt;http://127.0.0.1:5984/_utils/&gt; to access CouchDB's built-in web administration interface</li>
+            <li>You can use this interface to create documents, view documents, query databases, create/delete databases, etc.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>DEMO</h2>
+          <ul>
+            <li>List Databases</li>
+            <li>Validate Installation</li>
+            <li>View documents</li>
+            <li>Delete Databases</li>
+            <li>Create a New Database</li>
+            <li>Create a New Document
+              <ul>
+                <li>Auto-creates _id and _rev</li>
+              </ul>
+            </li>
+            <li>View Document as JSON Object</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Creating Documents: REST API</h2>
+          <ul>
+            <li>To create a document via the REST API, you have to PUT a JSON document to a URL of the form:
+              <ul>
+                <li>http://127.0.0.1:5984/&lt;database&gt;/&lt;UUID&gt;</li>
+              </ul>
+            </li>
+            <li>How do you get a UUID?
+              <ul>
+                <li>You can ask CouchDB for as many as you need!</li>
+              </ul>
+            </li>
+          </ul>
+          <pre><code data-trim contenteditable>
+$ curl -X GET http://127.0.0.1:5984/_uuids
+{"uuids":["8cf97aa5465a652dd49157457b000910"]}
+$ curl -X GET http://127.0.0.1:5984/_uuids?count=10
+{"uuids":[
+  "8cf97aa5465a652dd49157457b000a5e",
+  "8cf97aa5465a652dd49157457b0011c2",
+  "8cf97aa5465a652dd49157457b001264",
+  "8cf97aa5465a652dd49157457b001a65",
+  "8cf97aa5465a652dd49157457b002119",
+  "8cf97aa5465a652dd49157457b0025d6",
+  "8cf97aa5465a652dd49157457b0026f7",
+  "8cf97aa5465a652dd49157457b00298b",
+  "8cf97aa5465a652dd49157457b002e2f",
+  "8cf97aa5465a652dd49157457b00323d"]}
+          </code></pre>
+        </section>
+
+        <section>
+          <h2>Creating Documents: REST API</h2>
+          <ul>
+            <li>Once you have a UUID, you're ready to create a document</li>
+            <li>Let's add a new document to our hello_world database</li>
+          </ul>
+          <pre><code data-trim contenteditable>
+$ curl -X PUT http://127.0.0.1:5984/hello_world/8cf97aa5465a652dd49157457b000910
+-d '{"name": "Ken Anderson", "twitter": "@kenbod", "years_at_CU": 17}'
+
+{ "ok":true,
+  "id":"8cf97aa5465a652dd49157457b000910",
+  "rev":"1-bf4d017af7025ecf0de2f9bd94b3c14f"}
+          </code></pre>
+          <ul>
+            <li>As you can see, CouchDB uses the id that we supplied and generates a revision id.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Updating a Document (1)</h2>
+          <ul>
+            <li>When you want to update a document, you have to follow this workflow:
+              <ul>
+                <li>Read the entire document
+                  <ul>
+                    <li>Provides you with the _rev id</li>
+                  </ul>
+                </li>
+                <li>Change it</li>
+                <li>Store the updated document
+                  <ul>
+                    <li>Sending back the _rev id you received</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li>I discussed this approach for updating resources in the context of distributed systems at the beginning of the semester
+              <ul>
+                <li>Each time a document is updated, a new _rev id is generated</li>
+                <li>If you send an update with the wrong _rev id, CouchDB detects that you were operating on stale data and refuses the update</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Updating a Document (2)</h2>
+          <ul>
+            <li>Let's see this in action</li>
+          </ul>
+          <pre><code data-trim contenteditable>
+curl -X PUT http://127.0.0.1:5984/hello_world/8cf97aa5465a652dd49157457b000910
+-d '{"name": "Ken Anderson", "twitter": "@kenbod", "years_at_CU": 18}'
+
+{"error":"conflict",
+ "reason":"Document update conflict."}
+          </code></pre>
+          <ul>
+            <li>Here, I tried to update the number of years I've been at CU without including the _rev id</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Updating a Document (2)</h2>
+          <ul>
+            <li>To make this work, I need to include the _rev id</li>
+          </ul>
+          <pre><code data-trim contenteditable>
+curl -X PUT http://127.0.0.1:5984/hello_world/8cf97aa5465a652dd49157457b000910
+-d '{"name": "Ken Anderson", "twitter": "@kenbod", "years_at_CU": 18, "_rev": "1-bf4d017af7025ecf0de2f9bd94b3c14f"}'
+
+{"ok":true,"id":"8cf97aa5465a652dd49157457b000910",
+"rev":"2-14e8d90d996430b6a7a1e8eda76eeefe"}
+          </code></pre>
+          <ul>
+            <li>Now the update is applied and a new _rev id is generated.</li>
+            <li>Note: the prefix of the _rev id
+              <ul>
+                <li>1-... and 2-...; The prefix tracks the number of times the document has been updated!</li>
+              </ul>
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Views in CouchDB</h2>
+          <ul>
+            <li>Let's create our first view</li>
+            <li>Views are calculated via MapReduce</li>
+            <li>CouchDB's GUI allows for our Map and Reduce functions to be specified in the browser</li>
+            <li>Let's create a few documents about grocery items with price information and then sort by price</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Example Document</h2>
+          <pre><code data-trim contenteditable>
+{
+   "_id": "00a271787f89c0ef2e10e88a0c0003f0",
+   "_rev": "1-e9680c5d9a688b4ff8dd68549e8e072c",
+   "item": "orange",
+   "prices": {
+       "Fresh Mart": 1.99,
+       "Price Max": 3.19,
+       "Citrus Circus": 1.09
+   }
+}          </code></pre>
+        </section>
+
+
+        <section>
+          <h2>Example Map Function</h2>
+          <pre><code data-trim contenteditable>
+function(doc) {
+  var shop, price, value;
+  if (doc.item &amp;&amp; doc.prices) {
+    for (shop in doc.prices) {
+      price = doc.prices[shop];
+      value = [doc.item, shop];
+      emit(price, value);
+    }
+  }
+}
+          </code></pre>
+        </section>
+
+        <section>
+          <h2>Results</h2>
+          <ul>
+            <li>When the Map function is applied to our documents, it produces (i.e. <q>emits<q>) a bunch of small documents with price as the key. CouchDB automatically sorts the view by this key</li>
+            <li>Example:</li>
+          </ul>
+          <table>
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>0.79</td>
+                <td>["apple", "Apples Express"]</td>
+              </tr>
+              <tr>
+                <td>0.79</td>
+                <td>["banana", "Price Max"]</td>
+              </tr>
+              <tr>
+                <td>1.09</td>
+                <td>["orange", "Citrus Circus"]</td>
+              </tr>
+              <tr>
+                <td>...</td>
+                <td>...</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2>Different Map Function</h2>
+          <p>Change the emitted key, get different results</p>
+          <pre><code data-trim contenteditable>
+function(doc) {
+  var shop, price, value;
+  if (doc.item &amp;&amp; doc.prices) {
+    for (shop in doc.prices) {
+      price = doc.prices[shop];
+      key = [doc.item, price];
+      emit(key, shop);
+    }
+  }
+}
+          </code></pre>
+        </section>
+
+        <section>
+          <h2>Results</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>["apple", 0.79]</td>
+                <td>"Apples Express"</td>
+              </tr>
+              <tr>
+                <td>["apple", 1.59]</td>
+                <td>"Fresh Mart"</td>
+              </tr>
+              <tr>
+                <td>["apple", 5.99]</td>
+                <td>"Price Max"</td>
+              </tr>
+              <tr>
+                <td>["banana", 0.79]</td>
+                <td>"Price Max"</td>
+              </tr>
+              <tr>
+                <td>...</td>
+                <td>...</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2>Replication</h2>
+          <ul>
+            <li>We can demonstrate CouchDB's support for replication in the browser as well</li>
+            <li>First, we create an empty database: food_copy</li>
+            <li>Second, click Replicator in the side bar</li>
+            <li>Specify groceries as the source and food_copy as the destination</li>
+            <li>Click Replicate</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Creating Web Apps in CouchDB</h2>
+          <ul>
+            <li>CouchDB has a powerful concept called Design Documents</li>
+            <li>Design Documents allow you to create web apps that are served directly out of CouchDB</li>
+            <li>I'm not going to cover Design Documents today</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Twitter Example</h2>
+          <ul>
+            <li>Instead, let's see how we can use CouchDB to store and search tweet objects from the Twitter API</li>
+            <li>Recall that I downloaded ~300MB of tweet objects last week</li>
+            <li>We'll use those objects to set-up Thursday's lecture, where I will go into detail on CouchDB views and its map-reduce capabilities.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Import Tweets</h2>
+          <ul>
+            <li>Straightforward Ruby Code</li>
+            <li>Since CouchDB has a REST interface, I make use of Typhoeus</li>
+            <li>Input file is a "JSON file": one JSON object per line</li>
+            <li>get_uuid: asks CouchDB for a uuid</li>
+            <li>insert_tweet: inserts a tweet with the given uuid</li>
+            <li>Program loops through the input file and inserts each tweet into a "tweets" database (previously created)</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Coming Up Next</h2>
+          <ul>
+            <li>More info on CouchDB's features
+              <ul>
+                <li>Views (includes Map Reduce)</li>
+                <li>Design Documents</li>
+              </ul>
+            </li>
+            <li>Introduction to MongoDB</li>
+          </ul>
+        </section>
+
       </div>
 
     </div>
